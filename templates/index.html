@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart YouTube Summarizer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body class="text-gray-800 font-sans min-h-screen transition-colors duration-300 relative">
+    
+    <div class="absolute top-4 right-4 z-50">
+        <button id="theme-toggle" class="bg-white/80 backdrop-blur border border-gray-200 text-gray-800 font-semibold py-2 px-4 rounded-full shadow-sm hover:shadow-md transition duration-200 flex items-center gap-2">
+            <span id="theme-icon">🌙</span> <span id="theme-text">Dark Mode</span>
+        </button>
+    </div>
+
+    <div class="max-w-5xl mx-auto px-4 py-12">
+        <header class="text-center mb-10 pt-8">
+            <h1 class="text-4xl font-extrabold text-gray-900 mb-2">🎙️ Smart YouTube Summarizer</h1>
+            <p class="text-gray-500">Advanced AI Analysis & Insights</p>
+        </header>
+
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 md:p-8 mb-8">
+            <form id="analyze-form" class="space-y-6">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">YouTube URL</label>
+                    <input type="text" id="video-url" required placeholder="https://www.youtube.com/watch?v=..." 
+                           class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition bg-white text-gray-900">
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">
+                            Output Language <span class="text-xs text-red-500 font-bold ml-1">(Auto-Translates Input!)</span>
+                        </label>
+                        <select id="language" class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-red-500 outline-none bg-white text-gray-900">
+                            <option value="English">English</option>
+                            <option value="Hindi">Hindi</option>
+                            <option value="Telugu">Telugu</option>
+                            <option value="Spanish">Spanish</option>
+                            <option value="French">French</option>
+                            <option value="German">German</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Mode</label>
+                        <select id="mode" class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-red-500 outline-none bg-white text-gray-900">
+                            <option value="General Summary">📄 General Summary</option>
+                            <option value="Bullet Summary">📝 Bullet Summary</option>
+                            <option value="Timestamp Summary">🎬 Timestamp Summary</option>
+                            <option value="Key Insights">🎯 Key Insights</option>
+                            <option value="Study Mode">🎓 Study Mode (Notes, Cards, Quiz)</option>
+                            <option value="Fact Check">🕵️ Fact Check Analysis</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div id="quiz-options-container" class="hidden mt-6 mb-2">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Number of Quiz Questions</label>
+                    <div class="flex items-center space-x-3">
+                        <input type="number" id="quiz-count" min="1" max="15" value="5" 
+                               class="w-full md:w-1/3 px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-red-500 outline-none bg-white text-gray-900 transition-colors">
+                        <span class="text-sm text-gray-500">Choose between 1 and 15 questions</span>
+                    </div>
+                </div>
+
+                <button type="submit" id="submit-btn" class="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-200 flex justify-center items-center">
+                    <span>Generate Analysis</span>
+                </button>
+            </form>
+        </div>
+
+        <div id="loading" class="hidden text-center py-10">
+            <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-red-600 mb-4"></div>
+            <p class="text-gray-500 font-medium">Analyzing video... this may take a minute.</p>
+        </div>
+
+        <div id="results-container" class="hidden space-y-8">
+            
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                <img id="video-thumbnail" src="" alt="Video Thumbnail" class="w-full h-64 object-cover">
+            </div>
+
+            <div id="analytics-section" class="hidden grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 text-center transition-colors duration-300">
+                    <p class="text-sm text-gray-500 mb-1">Reading Time</p>
+                    <h3 class="text-3xl font-bold text-gray-800"><span id="read-time">0</span> min</h3>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 text-center transition-colors duration-300">
+                    <p class="text-sm text-gray-500 mb-1">Sentiment Score</p>
+                    <h3 class="text-3xl font-bold text-gray-800" id="sentiment-val">0</h3>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 text-center transition-colors duration-300">
+                    <p class="text-sm text-gray-500 mb-1">Keywords</p>
+                    <div id="keywords-container" class="flex flex-wrap justify-center gap-2 mt-2"></div>
+                </div>
+            </div>
+
+            <div id="standard-summary" class="bg-white p-8 rounded-xl shadow-sm border border-gray-100 transition-colors duration-300">
+                <h2 class="text-2xl font-bold mb-6 border-b pb-2 text-gray-900">AI Summary</h2>
+                <div id="summary-content" class="prose prose-red max-w-none text-gray-700 break-words"></div>
+            </div>
+
+            <div id="fact-check-summary" class="hidden bg-white p-8 rounded-xl shadow-sm border border-gray-100 transition-colors duration-300 w-full overflow-hidden">
+                <div class="flex items-center justify-between border-b pb-4 mb-6">
+                    <h2 class="text-2xl font-bold text-gray-900 dark:text-gray-100">🕵️ Fact Check Analysis</h2>
+                    <span class="bg-yellow-100 text-yellow-800 text-xs font-semibold px-3 py-1 rounded-full border border-yellow-200">Experimental AI Verification</span>
+                </div>
+                <p class="text-sm text-gray-500 mb-6">The AI has cross-referenced the claims in this video. Please note that AI verification can sometimes make errors.</p>
+                <div id="fact-check-container" class="space-y-4"></div>
+            </div>
+
+            <div id="study-summary" class="hidden">
+                <div class="flex flex-wrap border-b border-gray-200 dark:border-gray-700 mb-6 bg-white dark:bg-gray-800 rounded-t-xl overflow-hidden shadow-sm">
+                    <button id="tab-btn-notes" class="study-tab-btn w-full sm:w-auto flex-1 px-6 py-4 font-bold text-blue-600 border-b-4 border-blue-600 focus:outline-none transition-colors bg-blue-50 dark:bg-gray-700">
+                        📚 Study Notes
+                    </button>
+                    <button id="tab-btn-cards" class="study-tab-btn w-full sm:w-auto flex-1 px-6 py-4 font-bold text-gray-500 hover:text-yellow-500 hover:bg-yellow-50 dark:hover:bg-gray-700 border-b-4 border-transparent focus:outline-none transition-colors bg-white dark:bg-gray-800">
+                        🧠 Flashcards
+                    </button>
+                    <button id="tab-btn-quiz" class="study-tab-btn w-full sm:w-auto flex-1 px-6 py-4 font-bold text-gray-500 hover:text-green-500 hover:bg-green-50 dark:hover:bg-gray-700 border-b-4 border-transparent focus:outline-none transition-colors bg-white dark:bg-gray-800">
+                        ❓ Practice Quiz
+                    </button>
+                </div>
+
+                <div id="tab-content-notes" class="study-tab-content bg-white p-8 rounded-b-xl shadow-sm border-t border-gray-100 transition-colors duration-300 w-full overflow-hidden">
+                    <div id="study-notes-content" class="prose prose-blue max-w-none text-gray-700 break-words"></div>
+                </div>
+
+                <div id="tab-content-cards" class="study-tab-content hidden bg-white p-8 rounded-b-xl shadow-sm border-t border-gray-100 transition-colors duration-300 w-full overflow-hidden">
+                    <p class="text-sm text-gray-500 mb-6 -mt-2 text-center">Hover over a card to reveal the answer.</p>
+                    <div id="study-flashcards-content" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+                </div>
+
+                <div id="tab-content-quiz" class="study-tab-content hidden bg-white p-8 rounded-b-xl shadow-sm border-t border-gray-100 transition-colors duration-300 w-full overflow-hidden">
+                    <div id="study-quiz-content" class="w-full">
+                        <div id="quiz-questions-container" class="space-y-6"></div>
+                        <div id="quiz-actions" class="hidden mt-8 pt-6 border-t border-gray-200 dark:border-gray-700 flex flex-wrap gap-4">
+                            <button id="submit-quiz-btn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-6 rounded-lg transition-colors shadow-sm">Submit Answers</button>
+                            <button id="show-answers-btn" class="hidden bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg transition-colors shadow-sm">Show Answers</button>
+                            <button id="try-again-btn" class="hidden bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-6 rounded-lg transition-colors shadow-sm">Try Again (New Questions)</button>
+                        </div>
+                        <div id="quiz-score-display" class="hidden mt-6 text-center bg-gray-50 dark:bg-gray-800 p-6 rounded-xl border border-gray-200 dark:border-gray-700">
+                            <h3 class="text-2xl font-bold text-gray-900 dark:text-gray-100">Your Score</h3>
+                            <p id="quiz-score-text" class="text-4xl font-extrabold text-green-600 mt-2">0 / 0</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="/static/js/script.js"></script>
+</body>
+</html>

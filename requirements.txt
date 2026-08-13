@@ -1,0 +1,6 @@
+flask
+flask-cors
+python-dotenv
+youtube-transcript-api
+google-genai
+yt-dlp
